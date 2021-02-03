@@ -13,5 +13,6 @@ set(PICO_EXAMPLES_PATH ${PROJECT_SOURCE_DIR})
 pico_sdk_init()
 
 include(example_auto_set_url.cmake)
-# Add threading
+
 add_subdirectory(thread)
+add_subdirectory(test)
