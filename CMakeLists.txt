@@ -16,3 +16,4 @@ include(example_auto_set_url.cmake)
 
 add_subdirectory(thread)
 add_subdirectory(test)
+add_subdirectory(button)
