@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "cstdio": "cpp",
+        "string_view": "c"
+    }
+}
