@@ -1,4 +1,7 @@
+#ifndef MAIN_H
+#define MAIN_H
 
+#include "pico/mutex.h"
 
 #define DEBUG 1
 
@@ -7,6 +10,7 @@
 #define LED_PIN 25
 #define LOW_POWER_ALTITUDE 2000
 
+static mutex_t mtx;
 
 static struct STATE
 {
@@ -20,5 +24,9 @@ static struct STATE
     int Satellites;
 } state;
 
+
+
 void core_entry();
 void blinkLED(struct STATE *s);
+
+#endif

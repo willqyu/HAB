@@ -7,13 +7,12 @@
 #include "main.h"
 #include "misc.h"
 #include "sensors/bmp.h"
+#include "sensors/gps.h"
+#include "helpers/repeater.h"
 
 //RUNTIME VARIABLES
+Repeater led_repeater(3000);
 
-uint64_t led_delay = 5000;
-uint64_t last_led_time = 0;
-
-static mutex_t mtx;
 
 //MAIN CORE FUNCTIONS
 
@@ -28,6 +27,8 @@ int main() {
     debug("> Initialise LED...");
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
+    gpio_put(LED_PIN, 0);
+    led_repeater.update_delay(50, 50, 50);
     debug(" Done\n");
 
     debug("> Initialise mutex...");
@@ -81,18 +82,18 @@ void core_entry() {
 void blinkLED(struct STATE *s) {
     mutex_enter_blocking(&mtx);
     long alt = s->Altitude;
-    uint64_t time = get_time() / 1000;
     mutex_exit(&mtx);
     
-    if (alt < LOW_POWER_ALTITUDE) {
-        led_delay = 500;
+    if (alt > LOW_POWER_ALTITUDE) {
+        led_repeater.pause();
+
     } else {
-        return;
+        if (led_repeater.can_fire()) {
+            gpio_put(LED_PIN, !gpio_get(LED_PIN));
+        
+        }
     }
-    if (time >= last_led_time + led_delay) {
-        gpio_put(LED_PIN, !gpio_get(LED_PIN));
-        last_led_time = time;
-    }
+    
     
 }
 
