@@ -16,7 +16,14 @@
 #define SCLK_0 18
 #define MOSI_0 19
 
-#define CS_BMP   17
+#define SPI_PORT_1 spi1
+#define MISO_1 12
+#define SCLK_1 14
+#define MOSI_1 15
+
+#define CS_BMP 17
+#define CS_LOR 10
+#define DIO0 11
 
 static mutex_t mtx;
 

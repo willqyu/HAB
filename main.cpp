@@ -3,6 +3,7 @@
 #include "pico/multicore.h"
 #include "pico/mutex.h"
 #include "hardware/spi.h"
+#include "hardware/watchdog.h"
 
 #include "main.h"
 #include "misc.h"
@@ -20,22 +21,43 @@ static Repeater BMP_repeater(500);
 
 int main() {
 
-    //init serial
-    setup_default_uart();
+    //init usb output
+    stdio_init_all();
+    
     debug("\n=== WM Pi Pico HAB Tracker V1.0 ===\n");
 
     debug("\n>>> Initialising modules ...\n\n");
 
-    debug("> Initialise LED...");
+    debug("> Initialise LED... ");
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
     gpio_put(LED_PIN, 0);
     LED_repeater.update_delay(50, 50, 50);
-    debug(" Done\n");
+    debug("Done\n");
 
-    debug("> Initialise mutex...");
+    debug("> Initialise mutex... ");
     mutex_init(&mtx);
-    debug(" Done\n");
+    debug("Done\n");
+
+    debug("> Initialise SPI 0 & 1 @ 500kHz... ");
+    spi_init(SPI_PORT_0, 500000);
+    spi_init(SPI_PORT_1, 500000);
+    //GPIO for SPI
+    gpio_set_function(MISO_0, GPIO_FUNC_SPI);
+    gpio_set_function(SCLK_0, GPIO_FUNC_SPI);
+    gpio_set_function(MOSI_0, GPIO_FUNC_SPI);
+    gpio_set_function(MISO_1, GPIO_FUNC_SPI);
+    gpio_set_function(SCLK_1, GPIO_FUNC_SPI);
+    gpio_set_function(MOSI_1, GPIO_FUNC_SPI);
+    debug("Done\n");
+
+    debug("Initialise BMP280... ");
+    initBMP280();
+    debug("Done\n");
+    
+    debug("> Enable watchdog... ");
+    watchdog_enable(100, 0);
+    debug("Done\n");
 
     debug("\n>>> Spooling thread... \n");
     multicore_launch_core1(core_entry);
@@ -46,22 +68,11 @@ int main() {
         multicore_fifo_push_blocking(CORE_INIT_FLAG);
         debug("> (0) Core 0 initialised.\n");
     }
-    
-    //Initialise SPI 0 @ 500kHz
-    spi_init(SPI_PORT_0, 500000);
-    //GPIO for SPI
-    gpio_set_function(MISO_0, GPIO_FUNC_SPI);
-    gpio_set_function(SCLK_0, GPIO_FUNC_SPI);
-    gpio_set_function(MOSI_0, GPIO_FUNC_SPI);
-    debug("> (0) SPI initialised.\n");
-
-    //Initialise BMP280
-    initBMP280();
-    debug("> (0) BMP280 initialised.\n");
 
     while(1) {
         //mainloop
         
+        watchdog_update();
         //TODO:
         check_LED(&state);
         check_BMP(&state);

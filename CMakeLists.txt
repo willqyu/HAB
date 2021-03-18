@@ -13,20 +13,24 @@ include(example_auto_set_url.cmake)
 add_executable(pico
     main.cpp
     misc.cpp
+    helpers/repeater.cpp
     sensors/bmp.cpp
     sensors/gps.cpp
-    helpers/repeater.cpp
-    )
+)
 
 target_link_libraries(pico 
+    hardware_watchdog
+    hardware_spi 
+    hardware_i2c 
+    hardware_adc
     pico_stdlib 
     pico_multicore
     pico_sync
     pico_time
-    hardware_spi 
-    hardware_i2c 
-    hardware_adc
 )
+
+pico_enable_stdio_usb(pico 1)
+pico_enable_stdio_uart(pico 0)
 
 pico_add_extra_outputs(
     pico
