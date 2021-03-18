@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
-#include "hardware/gpio.h"
 #include "pico/multicore.h"
 #include "pico/mutex.h"
+#include "hardware/spi.h"
 
 #include "main.h"
 #include "misc.h"
@@ -10,9 +10,11 @@
 #include "sensors/gps.h"
 #include "helpers/repeater.h"
 
-//RUNTIME VARIABLES
-Repeater led_repeater(3000);
 
+
+//RUNTIME VARIABLES
+static Repeater LED_repeater(3000);
+static Repeater BMP_repeater(500);
 
 //MAIN CORE FUNCTIONS
 
@@ -28,7 +30,7 @@ int main() {
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
     gpio_put(LED_PIN, 0);
-    led_repeater.update_delay(50, 50, 50);
+    LED_repeater.update_delay(50, 50, 50);
     debug(" Done\n");
 
     debug("> Initialise mutex...");
@@ -44,12 +46,27 @@ int main() {
         multicore_fifo_push_blocking(CORE_INIT_FLAG);
         debug("> (0) Core 0 initialised.\n");
     }
+    
+    //Initialise SPI 0 @ 500kHz
+    spi_init(SPI_PORT_0, 500000);
+    //GPIO for SPI
+    gpio_set_function(MISO_0, GPIO_FUNC_SPI);
+    gpio_set_function(SCLK_0, GPIO_FUNC_SPI);
+    gpio_set_function(MOSI_0, GPIO_FUNC_SPI);
+    debug("> (0) SPI initialised.\n");
+
+    //Initialise BMP280
+    initBMP280();
+    debug("> (0) BMP280 initialised.\n");
 
     while(1) {
         //mainloop
         
         //TODO:
-        //send LoRa msg
+        check_LED(&state);
+        check_BMP(&state);
+        //collect N02 data
+        //collect GPS data
         
     }
 }
@@ -67,34 +84,38 @@ void core_entry() {
         debug("> (1) Core 1 initialised.\n");
     }
 
+    
 
     while(1) {
         //threadloop
         
-        blinkLED(&state);
-        //collect BMP220
-        //collect N02 data
-        //collect GPS data
+        //TODO:
+        //Send Lora message
+        
     }
         
 }
 
-void blinkLED(struct STATE *s) {
+void check_LED(struct STATE *s) {
     mutex_enter_blocking(&mtx);
     long alt = s->Altitude;
     mutex_exit(&mtx);
     
-    if (alt > LOW_POWER_ALTITUDE) {
-        led_repeater.pause();
-
-    } else {
-        if (led_repeater.can_fire()) {
-            gpio_put(LED_PIN, !gpio_get(LED_PIN));
-        
-        }
+    if (alt < LOW_POWER_ALTITUDE && LED_repeater.can_fire()) {
+        gpio_put(LED_PIN, !gpio_get(LED_PIN));
     }
-    
-    
+}
+
+void check_BMP(struct STATE *s) {
+    if (BMP_repeater.can_fire()) {
+        int32_t temp = readTemp();
+        uint32_t press = readPress();
+        mutex_enter_blocking(&mtx);
+        printf("Temp = %.2fC | Press = %.2fPa \n", temp / 100.0, press / 256.0);
+        s->Pressure = press;
+        s->ExternalTemperature = temp;
+        mutex_exit(&mtx);
+    }
 }
 
 

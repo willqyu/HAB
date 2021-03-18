@@ -24,7 +24,7 @@ bool Repeater::can_fire() {
             delay_index++;
         }
         uint64_t delay = *delay_index;
-        printf("delay: %" PRIu64 "\n", delay);
+        //printf("delay: %" PRIu64 "\n", delay);
         next_fire = delayed_by_us(current_time, delay);
         return true;
     } else {
