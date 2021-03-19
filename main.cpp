@@ -16,6 +16,7 @@
 //RUNTIME VARIABLES
 static Repeater LED_repeater(3000);
 static Repeater BMP_repeater(500);
+static Repeater GPS_repeater(500);
 
 //MAIN CORE FUNCTIONS
 
@@ -35,10 +36,6 @@ int main() {
     LED_repeater.update_delay(50, 50, 50);
     debug("Done\n");
 
-    debug("> Initialise mutex... ");
-    mutex_init(&mtx);
-    debug("Done\n");
-
     debug("> Initialise SPI 0 & 1 @ 500kHz... ");
     spi_init(SPI_PORT_0, 500000);
     spi_init(SPI_PORT_1, 500000);
@@ -51,10 +48,18 @@ int main() {
     gpio_set_function(MOSI_1, GPIO_FUNC_SPI);
     debug("Done\n");
 
-    debug("Initialise BMP280... ");
+    debug("> Initialise BMP280... ");
     initBMP280();
     debug("Done\n");
+
+    debug("> Initialise GPS... ");
+    initGPS();
+    debug("Done\n");
     
+    debug("> Initialise mutex... ");
+    mutex_init(&mtx);
+    debug("Done\n");
+
     debug("> Enable watchdog... ");
     watchdog_enable(100, 0);
     debug("Done\n");
@@ -77,7 +82,7 @@ int main() {
         check_LED(&state);
         check_BMP(&state);
         //collect N02 data
-        //collect GPS data
+        check_GPS(&state);
         
     }
 }
@@ -122,10 +127,16 @@ void check_BMP(struct STATE *s) {
         int32_t temp = readTemp();
         uint32_t press = readPress();
         mutex_enter_blocking(&mtx);
-        printf("Temp = %.2fC | Press = %.2fPa \n", temp / 100.0, press / 256.0);
+        //printf("Temp = %.2fC | Press = %.2fPa \n", temp / 100.0, press / 256.0);
         s->Pressure = press;
         s->ExternalTemperature = temp;
         mutex_exit(&mtx);
+    }
+}
+
+void check_GPS(struct STATE *s) {
+    if (GPS_repeater.can_fire()) {
+        readGPS(s);
     }
 }
 

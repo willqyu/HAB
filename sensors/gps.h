@@ -1,7 +1,7 @@
 #ifndef GPS_INCLUDED
 #define GPS_INCLUDED
 
-void setup_gps(void);
-void check_gps(struct STATE *state);
+void initGPS(void);
+void readGPS(struct STATE *state);
 
 #endif

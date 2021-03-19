@@ -25,6 +25,10 @@
 #define CS_LOR 10
 #define DIO0 11
 
+//GPS UART
+#define GPS_TX 4
+#define GPS_RX 5
+
 static mutex_t mtx;
 
 typedef enum {fmIdle, fmLaunched, fmDescending, fmLanding, fmLanded} TFlightMode;
@@ -58,5 +62,6 @@ static struct STATE
 void core_entry();
 void check_LED(struct STATE *s);
 void check_BMP(struct STATE *s);
+void check_GPS(struct STATE *s);
 
 #endif
