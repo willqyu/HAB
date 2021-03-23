@@ -25,6 +25,14 @@
 #define CS_LOR 10
 #define DIO0 11
 
+#define I2C_PORT_0 i2c0
+#define SDA_0 20
+#define SCL_0 21
+
+#define I2C_PORT_1 i2c1
+#define SDA_1 26
+#define SCL_1 27
+
 //GPS UART
 #define GPS_TX 4
 #define GPS_RX 5
