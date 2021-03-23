@@ -48,8 +48,20 @@ int main() {
     gpio_set_function(MOSI_1, GPIO_FUNC_SPI);
     debug("Done\n");
 
+    debug("> Initiailise I2C 0 & 1 @400kHz... ");
+    i2c_init(I2C_PORT_0, 400*1000);
+    gpio_set_function(SDA_0, GPIO_FUNC_I2C);
+    gpio_set_function(SCL_0, GPIO_FUNC_I2C);
+    gpio_pull_up(SDA_0);
+    gpio_pull_up(SCL_0);
+    i2c_init(I2C_PORT_1, 400*1000);
+    gpio_set_function(SDA_1, GPIO_FUNC_I2C);
+    gpio_set_function(SCL_1, GPIO_FUNC_I2C);
+
+    debug("Done\n");
+
     debug("> Initialise BMP280... ");
-    initBMP280();
+    initBME280();
     debug("Done\n");
 
     debug("> Initialise GPS... ");
