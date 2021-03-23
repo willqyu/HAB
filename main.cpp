@@ -16,7 +16,7 @@
 //RUNTIME VARIABLES
 static Repeater LED_repeater(3000);
 static Repeater BMP_repeater(500);
-static Repeater GPS_repeater(500);
+static Repeater GPS_repeater(0);
 
 //MAIN CORE FUNCTIONS
 
