@@ -7,6 +7,7 @@
 
 #include "main.h"
 #include "misc.h"
+#include "lora.h"
 #include "sensors/bmp.h"
 #include "sensors/gps.h"
 #include "helpers/repeater.h"
