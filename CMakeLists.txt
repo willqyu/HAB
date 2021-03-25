@@ -14,6 +14,7 @@ add_executable(pico
     main.cpp
     misc.cpp
     helpers/repeater.cpp
+    helpers/memory.cpp
     sensors/bmp.cpp
     sensors/gps.cpp
 )

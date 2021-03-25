@@ -4,17 +4,12 @@
 #include "hardware/gpio.h"
 #include "hardware/spi.h"
 
-#include "types.h"
+#include "main.h"
 #include "misc.h"
 #include "lora.h"
 
-#define PIN_MISO 12
-#define PIN_CS   13
-#define PIN_SCK  14
-#define PIN_MOSI 15
-#define PIN_DIO0 11
 
-#define SPI_PORT spi1
+
 #define READ_BIT 0x80
 
 #define LORA_RTTY_COUNT 	0
@@ -161,12 +156,12 @@ void SetFrequency(double Frequency)
 {
 	unsigned long FrequencyValue;
 
-	// printf("Frequency is %.3f\n", Frequency);
+	printf("Frequency is %.3f\n", Frequency);
 
 	Frequency = Frequency * 7110656 / 434;
 	FrequencyValue = (unsigned long)(Frequency);
 
-	// printf("FrequencyValue is %lu\n", FrequencyValue);
+	printf("FrequencyValue is %lu\n", FrequencyValue);
 
 	writeRegister(0x06, (FrequencyValue >> 16) & 0xFF);    // Set frequency
 	writeRegister(0x07, (FrequencyValue >> 8) & 0xFF);
@@ -385,24 +380,20 @@ int LoRaIsFree(struct TGPS *GPS)
 	return 0;
 }
 
-void setup_lora(float Frequency, int Mode, char *Callsign)
+void initLORA(float Frequency, int Mode, char *Callsign)
 {
-	// Set up SPI LoRa Module
-	printf("  - Init LORA - ");
 
-    // SPI0 at 0.5MHz.
-    spi_init(SPI_PORT, 500*1000);
-    gpio_set_function(PIN_MISO, GPIO_FUNC_SPI);
-    gpio_init(PIN_CS);
-    gpio_set_function(PIN_SCK,  GPIO_FUNC_SPI);
-    gpio_set_function(PIN_MOSI, GPIO_FUNC_SPI);
+    gpio_set_function(MISO_1, GPIO_FUNC_SPI);
+    gpio_init(CS_LOR);
+    gpio_set_function(SCLK_1,  GPIO_FUNC_SPI);
+    gpio_set_function(MOSI_1, GPIO_FUNC_SPI);
 
     // Chip select is active-low, so we'll initialise it to a driven-high state
-    gpio_set_dir(PIN_CS, GPIO_OUT);
-    gpio_put(PIN_CS, 1);
+    gpio_set_dir(CS_LOR, GPIO_OUT);
+    gpio_put(CS_LOR, 1);
 	
 	// DIO0 is input
-    gpio_set_dir(PIN_DIO0, GPIO_IN);
+    gpio_set_dir(DIO0, GPIO_IN);
 	
 	SetupRFM98(Frequency, Mode);
 	
