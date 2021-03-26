@@ -20,7 +20,7 @@ void readNO2(struct STATE *state) {
     float convWV = workingVoltage * conversionFactor;
     float convAV = auxillaryVoltage * conversionFactor;
     float value = convWV / convAV;
-    printf("NO2 reading: %.3f\n", value);
+    printf("WV : %.3f | AV : %.3f | WV/AV : %.3f \n", convWV, convAV, value);
     mutex_enter_blocking(&mtx);
     state->NO2 = value;
     mutex_exit(&mtx);

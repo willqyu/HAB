@@ -100,6 +100,6 @@
 #define LNA_OFF_GAIN                0x00
 
 void initLora(float Frequency, int Mode, char *Callsign);
-void writeLora(struct TGPS *GPS);
+void check_lora(struct STATE *s);
 
 #endif

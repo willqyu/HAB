@@ -14,6 +14,7 @@
 #include "sensors/gps.h"
 #include "sensors/no2.h"
 #include "helpers/repeater.h"
+#include "helpers/memory.h"
 
 
 
@@ -22,6 +23,7 @@ static Repeater LED_repeater(3000);
 static Repeater BME_repeater(500);
 static Repeater GPS_repeater(0);
 static Repeater NO2_repeater(1000);
+static Repeater iTemp_repeater(200);
 
 //MAIN CORE FUNCTIONS
 
@@ -132,7 +134,7 @@ void core_entry() {
         
         //TODO:
         //Send Lora message
-        
+        check_lora();
     }
         
 }
@@ -162,6 +164,17 @@ void check_NO2(struct STATE *s) {
 void check_GPS(struct STATE *s) {
     if (GPS_repeater.can_fire()) {
         readGPS(s);
+    }
+}
+
+void check_internalTemps(struct STATE *s) {
+    if (iTemp_repeater.can_fire()) {
+        adc_select_input(4);
+        uint16_t iTempRaw = adc_read();
+        float iTemp = iTempRaw * conversionFactor;
+        mutex_enter_blocking(&mtx);
+        s->InternalTemperature = iTemp;
+        mutex_exit(&mtx);
     }
 }
 

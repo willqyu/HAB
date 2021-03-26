@@ -25,6 +25,7 @@ target_link_libraries(pico
     hardware_spi 
     hardware_i2c 
     hardware_adc
+    hardware_flash
     pico_stdlib 
     pico_multicore
     pico_sync
