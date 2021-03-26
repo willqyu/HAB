@@ -2,8 +2,9 @@
 #include <string.h>
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
-#include "main.h"
-#include "misc.h"
+#include "../main.h"
+#include "../misc.h"
+#include "bme.h"
 
 static int DeviceAddress = 0;	// We check on both address 0x76 and 0x77
 
@@ -91,7 +92,7 @@ void readCompParameters()
 {
     uint8_t buffer[26];
 
-    read_registers(0x88, buffer, 24);
+    readRegisters(0x88, buffer, 24);
 
     dig_T1 = buffer[0] | (buffer[1] << 8);
     dig_T2 = buffer[2] | (buffer[3] << 8);
@@ -109,7 +110,7 @@ void readCompParameters()
 
     dig_H1 = buffer[25];
 
-    read_registers(0xE1, buffer, 8);
+    readRegisters(0xE1, buffer, 8);
 
     dig_H2 = buffer[0] | (buffer[1] << 8);
     dig_H3 = (int8_t)buffer[2];
@@ -121,7 +122,7 @@ void readCompParameters()
 static void rawBME(int32_t *humidity, int32_t *pressure, int32_t *temperature) {
     uint8_t buffer[8];
 
-    read_registers(0xF7, buffer, 8);
+    readRegisters(0xF7, buffer, 8);
     *pressure = ((uint32_t)buffer[0] << 12) | ((uint32_t)buffer[1] << 4) | (buffer[2] >> 4);
     *temperature = ((uint32_t)buffer[3] << 12) | ((uint32_t)buffer[4] << 4) | (buffer[5] >> 4);
     *humidity = (uint32_t)buffer[6] << 8 | buffer[7];
@@ -132,13 +133,10 @@ void initBME280()
 {
 	int bytes_transferred;
 	uint8_t rxdata;
-
-    // This example will use I2C0 on GPIO4 (SDA) and GPIO5 (SCL) running at 400kHz.
-    
 	
-    if (i2c_read_blocking(i2c0, DeviceAddress = 0x76, &rxdata, 1, false) <= 0)
+    if (i2c_read_blocking(I2C_PORT_0, DeviceAddress = 0x76, &rxdata, 1, false) <= 0)
 	{
-		if (i2c_read_blocking(i2c0, DeviceAddress = 0x76, &rxdata, 1, false) <= 0)
+		if (i2c_read_blocking(I2C_PORT_0, DeviceAddress = 0x76, &rxdata, 1, false) <= 0)
 		{
 			printf("FAIL (No Device)\n");
 			DeviceAddress = 0;
@@ -150,16 +148,16 @@ void initBME280()
 		// Interrogate the device for its I2C ID number, should be 0x60
 		uint8_t id;
 
-		read_registers(0xD0, &id, 1);
+		readRegisters(0xD0, &id, 1);
 		
 		if (id == 0x60)
 		{
 			printf("OK (%02Xh)\n", DeviceAddress);
 			
-			read_compensation_parameters();
+			readCompParameters();
 
-			write_register(0xF2, 0x1); // Humidity oversampling register - going for x1
-			write_register(0xF4, 0x27);// Set rest of oversampling modes and run mode to normal
+			writeRegister(0xF2, 0x1); // Humidity oversampling register - going for x1
+			writeRegister(0xF4, 0x27);// Set rest of oversampling modes and run mode to normal
 		}
 		else
 		{
@@ -170,33 +168,30 @@ void initBME280()
 	}
 }
 
-void check_bme(struct TGPS *GPS)
+void readBME(struct STATE *state)
 {
 	if (DeviceAddress > 0)
 	{
-		static uint64_t NextAction = 0;
+    
+        int32_t humidity, pressure, temperature;
 
-		if (get_time() > NextAction)
-		{
-			int32_t humidity, pressure, temperature;
+        rawBME(&humidity, &pressure, &temperature);
 
-			bme280_read_raw(&humidity, &pressure, &temperature);
+        // These are the raw numbers from the chip, so we need to run through the
+        // compensations to get human understandable numbers
+        pressure = compPress(pressure);
+        temperature = compTemp(temperature);
+        humidity = compHumid(humidity);
 
-			// These are the raw numbers from the chip, so we need to run through the
-			// compensations to get human understandable numbers
-			pressure = compensate_pressure(pressure);
-			temperature = compensate_temp(temperature);
-			humidity = compensate_humidity(humidity);
-
-			printf("\nHumidity = %.2f%%\n",humidity / 1024.0);
-			printf("Pressure = %dPa\n", pressure);
-			printf("Temp. = %.2fC\n\n", temperature/100.0);
-			
-			GPS->ExternalTemperature = temperature / 100.0;
-			GPS->Pressure = pressure;
-			GPS->Humidity = humidity / 1024.0;
-
-			NextAction = get_time() + 1000000L;
-		}
+        printf("Humidity = %.2f%% | ",humidity / 1024.0);
+        printf("Pressure = %dPa | ", pressure);
+        printf("Temp. = %.2fC\n", temperature/100.0);
+        
+        mutex_enter_blocking(&mtx);
+        state->ExternalTemperature = temperature / 100.0;
+        state->Pressure = pressure;
+        state->Humidity = humidity / 1024.0;
+        mutex_exit(&mtx);
+		
 	}
 }

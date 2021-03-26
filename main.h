@@ -10,7 +10,7 @@
 #define LED_PIN 25
 #define LOW_POWER_ALTITUDE 2000
 
-//SPI Constants
+//SPI
 #define SPI_PORT_0 spi0
 #define MISO_0 16
 #define SCLK_0 18
@@ -25,6 +25,7 @@
 #define CS_LOR 10
 #define DIO0 11
 
+//I2C
 #define I2C_PORT_0 i2c0
 #define SDA_0 20
 #define SCL_0 21
@@ -36,6 +37,10 @@
 //GPS UART
 #define GPS_TX 4
 #define GPS_RX 5
+
+//NO2 GPIO
+#define B4WE 26
+#define B4AE 27
 
 static mutex_t mtx;
 
@@ -57,6 +62,8 @@ static struct STATE
 	float InternalTemperature;
 	signed long ExternalTemperature;
 	unsigned long Pressure;
+	unsigned long Humidity;
+	float NO2;
 	TFlightMode FlightMode;
 	float PredictedLongitude, PredictedLatitude;
 	float CDA;
@@ -69,7 +76,8 @@ static struct STATE
 
 void core_entry();
 void check_LED(struct STATE *s);
-void check_BMP(struct STATE *s);
+void check_BME(struct STATE *s);
 void check_GPS(struct STATE *s);
+void check_NO2(struct STATE *s);
 
 #endif

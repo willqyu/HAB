@@ -15,8 +15,9 @@ add_executable(pico
     misc.cpp
     helpers/repeater.cpp
     helpers/memory.cpp
-    sensors/bmp.cpp
+    sensors/bme.cpp
     sensors/gps.cpp
+    sensors/no2.cpp
 )
 
 target_link_libraries(pico 
@@ -30,8 +31,8 @@ target_link_libraries(pico
     pico_time
 )
 
-pico_enable_stdio_usb(pico 0)
-pico_enable_stdio_uart(pico 1)
+pico_enable_stdio_usb(pico 1)
+pico_enable_stdio_uart(pico 0)
 
 pico_add_extra_outputs(
     pico

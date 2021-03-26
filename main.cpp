@@ -2,22 +2,26 @@
 #include "pico/stdlib.h"
 #include "pico/multicore.h"
 #include "pico/mutex.h"
+#include "hardware/adc.h"
+#include "hardware/i2c.h"
 #include "hardware/spi.h"
 #include "hardware/watchdog.h"
 
 #include "main.h"
 #include "misc.h"
 #include "lora.h"
-#include "sensors/bmp.h"
+#include "sensors/bme.h"
 #include "sensors/gps.h"
+#include "sensors/no2.h"
 #include "helpers/repeater.h"
 
 
 
 //RUNTIME VARIABLES
 static Repeater LED_repeater(3000);
-static Repeater BMP_repeater(500);
+static Repeater BME_repeater(500);
 static Repeater GPS_repeater(0);
+static Repeater NO2_repeater(1000);
 
 //MAIN CORE FUNCTIONS
 
@@ -37,6 +41,14 @@ int main() {
     LED_repeater.update_delay(50, 50, 50);
     debug("Done\n");
 
+    debug("> Initialise ADC... ");
+    adc_init();
+    debug("Done\n");
+
+    debug("> Initisalise NO2 sensor... ");
+    initNO2();
+    debug("Done\n");
+    
     debug("> Initialise SPI 0 & 1 @ 500kHz... ");
     spi_init(SPI_PORT_0, 500000);
     spi_init(SPI_PORT_1, 500000);
@@ -61,7 +73,7 @@ int main() {
 
     debug("Done\n");
 
-    debug("> Initialise BMP280... ");
+    debug("> Initialise BME280... ");
     initBME280();
     debug("Done\n");
 
@@ -93,8 +105,8 @@ int main() {
         watchdog_update();
         //TODO:
         check_LED(&state);
-        check_BMP(&state);
-        //collect N02 data
+        check_BME(&state);
+        check_NO2(&state);
         check_GPS(&state);
         
     }
@@ -135,15 +147,15 @@ void check_LED(struct STATE *s) {
     }
 }
 
-void check_BMP(struct STATE *s) {
-    if (BMP_repeater.can_fire()) {
-        int32_t temp = readTemp();
-        uint32_t press = readPress();
-        mutex_enter_blocking(&mtx);
-        //printf("Temp = %.2fC | Press = %.2fPa \n", temp / 100.0, press / 256.0);
-        s->Pressure = press;
-        s->ExternalTemperature = temp;
-        mutex_exit(&mtx);
+void check_BME(struct STATE *s) {
+    if (BME_repeater.can_fire()) {
+        readBME(s);
+    }
+}
+
+void check_NO2(struct STATE *s) {
+    if (NO2_repeater.can_fire()) {
+        readNO2(s);
     }
 }
 
