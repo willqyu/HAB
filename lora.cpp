@@ -10,19 +10,7 @@
 
 
 
-#define READ_BIT 0x80
 
-#define LORA_RTTY_COUNT 	0
-#define LORA_RTTY_EVERY		0
-#define LORA_CALL_COUNT		0
-#define LORA_CALL_MODE		5
-#define LORA_CALL_FREQ		433.650
-#define LORA_BINARY			0
-#define LORA_REPEAT_SLOT_1	0
-#define LORA_REPEAT_SLOT_2	0
-#define LORA_SLOT			0
-#define LORA_CYCLETIME		0
-#define LORA_ID				0
 
 
 typedef enum {lmIdle, lmListening, lmSending} tLoRaMode;
@@ -55,14 +43,14 @@ static int ImplicitOrExplicit;
 static inline void cs_select()
 {
     asm volatile("nop \n nop \n nop");
-    gpio_put(PIN_CS, 0);  // Active low
+    gpio_put(CS_LOR, 0);  // Active low
     asm volatile("nop \n nop \n nop");
 }
 
 static inline void cs_deselect()
 {
     asm volatile("nop \n nop \n nop");
-    gpio_put(PIN_CS, 1);
+    gpio_put(CS_LOR, 1);
     asm volatile("nop \n nop \n nop");
 }
 
@@ -73,7 +61,7 @@ static void writeRegister(uint8_t reg, uint8_t data)
     buf[0] = reg | 0x80;
     buf[1] = data;
     cs_select();
-    spi_write_blocking(SPI_PORT, buf, 2);
+    spi_write_blocking(SPI_PORT_1, buf, 2);
     cs_deselect();
 	
     sleep_ms(1);
@@ -86,9 +74,9 @@ static uint8_t readRegister(uint8_t addr)
 	addr &= 0x7F;
 	
     cs_select();
-    spi_write_blocking(SPI_PORT, &addr, 1);
+    spi_write_blocking(SPI_PORT_1, &addr, 1);
     sleep_ms(1);
-    spi_read_blocking(SPI_PORT, 0, buf, 1);
+    spi_read_blocking(SPI_PORT_1, 0, buf, 1);
     cs_deselect();
 	
     sleep_ms(1);
@@ -259,27 +247,27 @@ int BuildLoRaCall(unsigned char *TxLine)
 	*/
 }
 
-int BuildLoRaPositionPacket(struct TGPS *GPS, unsigned char *TxLine)
+int BuildLoRaPositionPacket(struct STATE *state, unsigned char *TxLine)
 {
-	/*
+	
 	struct TBinaryPacket BinaryPacket;
 
 	SentenceCounter++;
 
 	BinaryPacket.PayloadIDs = 0xC0 | (LORA_ID << 3) | LORA_ID;
 	BinaryPacket.Counter = SentenceCounter;
-	BinaryPacket.BiSeconds = GPS->SecondsInDay / 2L;
-	BinaryPacket.Latitude = GPS->Latitude;
-	BinaryPacket.Longitude = GPS->Longitude;
-	BinaryPacket.Altitude = GPS->Altitude;
+	BinaryPacket.BiSeconds = state->SecondsInDay / 2L;
+	BinaryPacket.Latitude = state->Latitude;
+	BinaryPacket.Longitude = state->Longitude;
+	BinaryPacket.Altitude = state->Altitude;
 
 	memcpy(TxLine, &BinaryPacket, sizeof(BinaryPacket));
 
 	return sizeof(struct TBinaryPacket);
-	*/
+	
 }
 
-int TimeToSend(struct TGPS *GPS)
+int TimeToSend(struct STRUCT *state)
 {
 	int CycleSeconds;
 
@@ -292,7 +280,7 @@ int TimeToSend(struct TGPS *GPS)
 	}
 
 	/*
-	if ((millis() > (LastLoRaTX + LORA_CYCLETIME*1000+2000)) && (TimeToSendIfNoGPS == 0))
+	if ((millis() > (LastLoRaTX + LORA_CYCLETIME*1000+2000)) && (TimeToSendIfNoGPS))
 	{
 		// Timed out
 		printf("Using Timeout\n");
@@ -300,13 +288,13 @@ int TimeToSend(struct TGPS *GPS)
 	}
 	*/
 
-	if (GPS->Satellites > 0)
+	if (state->Satellites > 0)
 	{
 		/*
 		static int LastCycleSeconds=-1;
 
 		// Can't Tx twice at the same time
-		CycleSeconds = (GPS->SecondsInDay+LORA_CYCLETIME-17) % LORA_CYCLETIME;   // Could just use GPS time, but it's nice to see the slot agree with UTC
+		CycleSeconds = (state->SecondsInDay+LORA_CYCLETIME-17) % LORA_CYCLETIME;   // Could just use GPS time, but it's nice to see the slot agree with UTC
 
 		if (CycleSeconds != LastCycleSeconds)
 		{
@@ -341,7 +329,7 @@ int TimeToSend(struct TGPS *GPS)
 	return 0;
 }
 
-int LoRaIsFree(struct TGPS *GPS)
+int LoRaIsFree(struct STRUCT *state)
 {
 	if ((LoRaMode != lmSending) || gpio_get(PIN_DIO0))
 	{
@@ -357,7 +345,7 @@ int LoRaIsFree(struct TGPS *GPS)
 		// For TDM, if it's not a slot that we send in, then we should be in listening mode
 		// Otherwise, we just send
 					
-		if (TimeToSend(GPS))
+		if (TimeToSend(state))
 		{
 		  // Either sending continuously, or it's our slot to send in
 		  // printf("Channel %d is free\n", Channel);
@@ -444,8 +432,8 @@ void SendLoRaPacket(unsigned char *buffer, int Length, int CallingPacket)
     buf[0] = REG_FIFO | 0x80;
     cs_select();
 	
-    spi_write_blocking(SPI_PORT, buf, 1);
-    spi_write_blocking(SPI_PORT, buffer, Length);
+    spi_write_blocking(SPI_PORT_1, buf, 1);
+    spi_write_blocking(SPI_PORT_1, buffer, Length);
 	
     cs_deselect();
 
@@ -456,13 +444,13 @@ void SendLoRaPacket(unsigned char *buffer, int Length, int CallingPacket)
 	SendingRTTY = 0;
 }
 
-void check_lora(struct TGPS *GPS)
+void check_lora(struct STATE *state)
 {
 	// CheckFSKBuffer();
 
 	// CheckLoRaRx();
 
-	if (LoRaIsFree(GPS))
+	if (LoRaIsFree(state))
 	{		
 		// printf("LoRa is free\n");
 		if (SendRepeatedPacket == 3)
@@ -506,7 +494,7 @@ void check_lora(struct TGPS *GPS)
 			{
 				/*
 				// Send RTTY packet
-				PacketLength = BuildSentence(GPS, (char *)Sentence, PayloadID);
+				PacketLength = BuildSentence(state, (char *)Sentence, PayloadID);
 				printf("LoRa: Tx RTTY packet\n");
 				SendLoRaRTTY(PacketLength);    
 				*/
@@ -531,12 +519,12 @@ void check_lora(struct TGPS *GPS)
 					if (LORA_BINARY)
 					{
 						// 0x80 | (LORA_ID << 3) | TargetID
-						PacketLength = BuildLoRaPositionPacket(GPS, Sentence);
+						PacketLength = BuildLoRaPositionPacket(state, Sentence);
 						printf("LoRa: Tx Binary packet");
 					}
 					else
 					{
-						PacketLength = BuildSentence(GPS, (char *)Sentence, PayloadID);
+						PacketLength = BuildSentence(state, (char *)Sentence, PayloadID);
 						// printf("LoRa: Tx ASCII Sentence\n");
 						printf("\n%s\r\n", (char *)Sentence);
 					}
