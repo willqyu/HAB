@@ -99,7 +99,22 @@
 #define LNA_MAX_GAIN                0x23  // 0010 0011
 #define LNA_OFF_GAIN                0x00
 
-void initLora(float Frequency, int Mode, char *Callsign);
+// LORA defines
+#define READ_BIT 0x80
+
+#define LORA_RTTY_COUNT 	0
+#define LORA_RTTY_EVERY		0
+#define LORA_CALL_COUNT		0
+#define LORA_CALL_MODE		5
+#define LORA_CALL_FREQ		434.425
+#define LORA_BINARY			0
+#define LORA_REPEAT_SLOT_1	0
+#define LORA_REPEAT_SLOT_2	0
+#define LORA_SLOT			0
+#define LORA_CYCLETIME		0
+#define LORA_ID				0
+
+void initLora(float Frequency, int Mode, const char *Callsign);
 void check_lora(struct STATE *s);
 
 #endif

@@ -13,6 +13,7 @@ include(example_auto_set_url.cmake)
 add_executable(pico
     main.cpp
     misc.cpp
+    lora.cpp
     helpers/repeater.cpp
     helpers/memory.cpp
     sensors/bme.cpp
@@ -32,8 +33,8 @@ target_link_libraries(pico
     pico_time
 )
 
-pico_enable_stdio_usb(pico 1)
-pico_enable_stdio_uart(pico 0)
+pico_enable_stdio_usb(pico 0)
+pico_enable_stdio_uart(pico 1)
 
 pico_add_extra_outputs(
     pico

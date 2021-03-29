@@ -23,7 +23,7 @@ static Repeater LED_repeater(3000);
 static Repeater BME_repeater(500);
 static Repeater GPS_repeater(0);
 static Repeater NO2_repeater(1000);
-static Repeater iTemp_repeater(200);
+static Repeater iTemp_repeater(2000);
 
 //MAIN CORE FUNCTIONS
 
@@ -82,6 +82,15 @@ int main() {
     debug("> Initialise GPS... ");
     initGPS();
     debug("Done\n");
+
+    debug("> Initialise Lora... ");
+    const char * callsign = "PP";
+    initLora(LORA_CALL_FREQ, 0, callsign);
+    debug("Done\n");
+
+    debug("> Initialise internal temperature... ");
+    adc_set_temp_sensor_enabled(true);
+    debug("Done\n");
     
     debug("> Initialise mutex... ");
     mutex_init(&mtx);
@@ -108,9 +117,9 @@ int main() {
         //TODO:
         check_LED(&state);
         check_BME(&state);
-        check_NO2(&state);
+        //check_NO2(&state);
         check_GPS(&state);
-        
+        check_internalTemps(&state);
     }
 }
 
@@ -134,7 +143,7 @@ void core_entry() {
         
         //TODO:
         //Send Lora message
-        check_lora();
+        check_lora(&state);
     }
         
 }
@@ -171,10 +180,12 @@ void check_internalTemps(struct STATE *s) {
     if (iTemp_repeater.can_fire()) {
         adc_select_input(4);
         uint16_t iTempRaw = adc_read();
-        float iTemp = iTempRaw * conversionFactor;
+        float iTempV = iTempRaw * conversionFactor;
+        float iTemp =  27 - (iTempV - 0.706) / 0.001721;
         mutex_enter_blocking(&mtx);
         s->InternalTemperature = iTemp;
         mutex_exit(&mtx);
+        printf("> (0) Internal temperature %.2f\n", iTemp);
     }
 }
 

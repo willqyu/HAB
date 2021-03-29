@@ -22,7 +22,7 @@
 #define MOSI_1 15
 
 #define CS_BMP 17
-#define CS_LOR 10
+#define CS_LOR 13
 #define DIO0 11
 
 //I2C
@@ -31,8 +31,8 @@
 #define SCL_0 21
 
 #define I2C_PORT_1 i2c1
-#define SDA_1 26
-#define SCL_1 27
+#define SDA_1 2
+#define SCL_1 3
 
 //GPS UART
 #define GPS_TX 4
@@ -63,7 +63,8 @@ static struct STATE
 	signed long ExternalTemperature;
 	unsigned long Pressure;
 	unsigned long Humidity;
-	float NO2;
+	float NO2WE;
+	float NO2AE;
 	TFlightMode FlightMode;
 	float PredictedLongitude, PredictedLatitude;
 	float CDA;
@@ -79,5 +80,6 @@ void check_LED(struct STATE *s);
 void check_BME(struct STATE *s);
 void check_GPS(struct STATE *s);
 void check_NO2(struct STATE *s);
+void check_internalTemps(struct STATE *s);
 
 #endif
