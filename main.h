@@ -5,6 +5,7 @@
 
 #define DEBUG 1
 
+
 #define CORE_INIT_FLAG 69
 
 #define LED_PIN 25
@@ -34,6 +35,12 @@
 #define SDA_1 2
 #define SCL_1 3
 
+//LORA
+
+#define CALLSIGN "WSHAB2"
+#define FREQUENCY 434.275
+#define LORA_MODE 0
+
 //GPS UART
 #define GPS_TX 4
 #define GPS_RX 5
@@ -42,7 +49,10 @@
 #define B4WE 26
 #define B4AE 27
 
+//Mutex
 static mutex_t mtx;
+static mutex_t mtx_adc;
+
 
 typedef enum {fmIdle, fmLaunched, fmDescending, fmLanding, fmLanded} TFlightMode;
 static struct STATE
@@ -60,9 +70,9 @@ static struct STATE
 	float AscentRate;
 	float BatteryVoltage;
 	float InternalTemperature;
-	signed long ExternalTemperature;
-	unsigned long Pressure;
-	unsigned long Humidity;
+	float ExternalTemperature;
+	float Pressure;
+	float Humidity;
 	float NO2WE;
 	float NO2AE;
 	TFlightMode FlightMode;
@@ -77,9 +87,11 @@ static struct STATE
 
 void core_entry();
 void check_LED(struct STATE *s);
+void fix_LED();
 void check_BME(struct STATE *s);
 void check_GPS(struct STATE *s);
 void check_NO2(struct STATE *s);
 void check_internalTemps(struct STATE *s);
+void writeStateToMem(struct STATE * s);
 
 #endif

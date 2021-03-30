@@ -195,6 +195,13 @@ void ProcessLine(struct STATE *state, unsigned char *b, int Count)
             unsigned char setVTG[] = {0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x05, 0x47};
             SendUBX(setVTG, sizeof(setVTG));
         }
+		else if (strncmp(Buffer+3, "TXT", 3) == 0)
+        {
+			if (strncmp(Buffer+7, "01,01,01,More than 100 frame errors, UART RX was disabled*70", 60) == 0) {
+				printf("<!> (0) GPS error... Wait for watchdog\n");
+				sleep_ms(1000);
+			}
+		}
         else
         {
             printf("Unknown NMEA sentence: %s\n", Buffer);
@@ -247,7 +254,7 @@ void readGPS(struct STATE *state)
 			if (Character == '\n')
 			{
 				Line[Length] = '\0';
-				printf("%s", Line);
+				printf("> (0) %s", Line);
 				ProcessLine(state, Line, Length);
 				Length = 0;
 			}

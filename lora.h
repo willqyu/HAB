@@ -114,7 +114,8 @@
 #define LORA_CYCLETIME		0
 #define LORA_ID				0
 
-void initLora(float Frequency, int Mode, const char *Callsign);
+void initLora();
 void check_lora(struct STATE *s);
+int BuildSentence(struct STATE *state, char *TxLine, const char *PayloadID);
 
 #endif

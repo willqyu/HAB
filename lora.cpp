@@ -8,11 +8,6 @@
 #include "misc.h"
 #include "lora.h"
 
-
-
-
-
-
 typedef enum {lmIdle, lmListening, lmSending} tLoRaMode;
 
 struct TBinaryPacket
@@ -144,12 +139,12 @@ void SetFrequency(double Frequency)
 {
 	unsigned long FrequencyValue;
 
-	printf("Frequency is %.3f\n", Frequency);
+	//printf("Frequency is %.3f\n", Frequency);
 
 	Frequency = Frequency * 7110656 / 434;
 	FrequencyValue = (unsigned long)(Frequency);
 
-	printf("FrequencyValue is %lu\n", FrequencyValue);
+	//printf("FrequencyValue is %lu\n", FrequencyValue);
 
 	writeRegister(0x06, (FrequencyValue >> 16) & 0xFF);    // Set frequency
 	writeRegister(0x07, (FrequencyValue >> 8) & 0xFF);
@@ -245,29 +240,30 @@ int BuildLoRaCall(unsigned char *TxLine)
 			
 	return strlen((char *)TxLine) + 1;
 	*/
+	return 0;
 }
 
 int BuildLoRaPositionPacket(struct STATE *state, unsigned char *TxLine)
 {
 	
-	struct TBinaryPacket BinaryPacket;
+	// struct TBinaryPacket BinaryPacket;
 
-	SentenceCounter++;
+	// SentenceCounter++;
 
-	BinaryPacket.PayloadIDs = 0xC0 | (LORA_ID << 3) | LORA_ID;
-	BinaryPacket.Counter = SentenceCounter;
-	BinaryPacket.BiSeconds = state->SecondsInDay / 2L;
-	BinaryPacket.Latitude = state->Latitude;
-	BinaryPacket.Longitude = state->Longitude;
-	BinaryPacket.Altitude = state->Altitude;
+	// BinaryPacket.PayloadIDs = 0xC0 | (LORA_ID << 3) | LORA_ID;
+	// BinaryPacket.Counter = SentenceCounter;
+	// BinaryPacket.BiSeconds = state->SecondsInDay / 2L;
+	// BinaryPacket.Latitude = state->Latitude;
+	// BinaryPacket.Longitude = state->Longitude;
+	// BinaryPacket.Altitude = state->Altitude;
 
-	memcpy(TxLine, &BinaryPacket, sizeof(BinaryPacket));
+	// memcpy(TxLine, &BinaryPacket, sizeof(BinaryPacket));
 
-	return sizeof(struct TBinaryPacket);
-	
+	// return sizeof(struct TBinaryPacket);
+	return 0;
 }
 
-int TimeToSend(struct STRUCT *state)
+int TimeToSend(struct STATE *s)
 {
 	int CycleSeconds;
 
@@ -288,7 +284,7 @@ int TimeToSend(struct STRUCT *state)
 	}
 	*/
 
-	if (state->Satellites > 0)
+	if (s->Satellites > 0)
 	{
 		/*
 		static int LastCycleSeconds=-1;
@@ -329,9 +325,9 @@ int TimeToSend(struct STRUCT *state)
 	return 0;
 }
 
-int LoRaIsFree(struct STRUCT *state)
+int LoRaIsFree(struct STATE *state)
 {
-	if ((LoRaMode != lmSending) || gpio_get(PIN_DIO0))
+	if ((LoRaMode != lmSending) || gpio_get(DIO0))
 	{
 		// Either not sending, or was but now it's sent.  Clear the flag if we need to
 		if (LoRaMode == lmSending)
@@ -368,7 +364,7 @@ int LoRaIsFree(struct STRUCT *state)
 	return 0;
 }
 
-void initLORA(float Frequency, int Mode, char *Callsign)
+void initLora()
 {
 
     gpio_set_function(MISO_1, GPIO_FUNC_SPI);
@@ -383,11 +379,10 @@ void initLORA(float Frequency, int Mode, char *Callsign)
 	// DIO0 is input
     gpio_set_dir(DIO0, GPIO_IN);
 	
-	SetupRFM98(Frequency, Mode);
+	SetupRFM98(FREQUENCY, LORA_MODE);
 	
-	strcpy(PayloadID, Callsign);
-
- 	printf("OK\n");
+	strcpy(PayloadID, CALLSIGN);
+                           
 }
 
 void SendLoRaPacket(unsigned char *buffer, int Length, int CallingPacket)
@@ -449,10 +444,9 @@ void check_lora(struct STATE *state)
 	// CheckFSKBuffer();
 
 	// CheckLoRaRx();
-
 	if (LoRaIsFree(state))
 	{		
-		// printf("LoRa is free\n");
+		//printf("LoRa is free\n");
 		if (SendRepeatedPacket == 3)
 		{
 			// Repeat ASCII sentence
@@ -524,13 +518,78 @@ void check_lora(struct STATE *state)
 					}
 					else
 					{
+						
 						PacketLength = BuildSentence(state, (char *)Sentence, PayloadID);
 						// printf("LoRa: Tx ASCII Sentence\n");
-						printf("\n%s\r\n", (char *)Sentence);
+						printf("> (1) ");
+						printf("%s\r", (char *)Sentence);
+						
 					}
 					SendLoRaPacket(Sentence, PacketLength, 0);  
 				}
 			}
 		}
 	}
+	
+}
+
+int BuildSentence(struct STATE *state, char *TxLine, const char *PayloadID)
+{
+	static unsigned int SentenceCounter=0;
+    int Count, i, j;
+    unsigned char c;
+    unsigned int CRC, xPolynomial;
+    char CRCString[8];
+	
+    SentenceCounter++;
+	
+    sprintf(TxLine,
+            // SENTENCE_LENGTH-6,
+            "$$%s,%d,%02d:%02d:%02d,%.5f,%.5f,%05.5ld,%u,%.1f,%.1f,%.1f,%.0f,%.1f,%.2f,%7.5f,%7.5f,%3.1f,%d,%.5f,%.5f",
+            PayloadID,
+            SentenceCounter,
+			state->Hours, state->Minutes, state->Seconds,
+            state->Latitude,
+            state->Longitude,
+            state->Altitude,
+			state->Satellites,
+            state->BatteryVoltage,
+			state->InternalTemperature,
+			state->ExternalTemperature,
+			state->Pressure,
+			state->Humidity,
+			state->CDA,
+			state->PredictedLatitude,
+			state->PredictedLongitude,
+			state->PredictedLandingSpeed,
+			state->TimeTillLanding,
+			state->NO2WE,
+			state->NO2AE
+            );
+    Count = strlen(TxLine);
+
+    CRC = 0xffff;           // Seed
+    xPolynomial = 0x1021;
+   
+     for (i = 2; i < Count; i++)
+     {   // For speed, repeat calculation instead of looping for each bit
+        CRC ^= (((unsigned int)TxLine[i]) << 8);
+        for (j=0; j<8; j++)
+        {
+            if (CRC & 0x8000)
+                CRC = (CRC << 1) ^ 0x1021;
+            else
+                CRC <<= 1;
+        }
+     }
+
+    TxLine[Count++] = '*';
+    TxLine[Count++] = Hex((CRC >> 12) & 15);
+    TxLine[Count++] = Hex((CRC >> 8) & 15);
+    TxLine[Count++] = Hex((CRC >> 4) & 15);
+    TxLine[Count++] = Hex(CRC & 15);
+  	TxLine[Count++] = '\n';  
+	  TxLine[Count++] = '\0';
+	
+	return strlen(TxLine) + 1;
 }

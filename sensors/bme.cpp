@@ -4,7 +4,8 @@
 #include "hardware/i2c.h"
 #include "../main.h"
 #include "../misc.h"
-#include "bme.h"
+
+
 
 static int DeviceAddress = 0;	// We check on both address 0x76 and 0x77
 
@@ -23,7 +24,7 @@ data from the chip to something usable. Each chip has a different set of
 compensation parameters stored on the chip at point of manufacture, which are
 read from the chip at startup and used inthese routines.
 */
-int32_t compTemp(int32_t adc_T) {
+int32_t compensate_temp(int32_t adc_T) {
     int32_t var1, var2, T;
     var1 = ((((adc_T>>3) - ((int32_t)dig_T1<<1))) * ((int32_t)dig_T2)) >> 11;
     var2 = (((((adc_T>>4) - ((int32_t)dig_T1)) * ((adc_T>>4) - ((int32_t)dig_T1))) >> 12) * ((int32_t)dig_T3)) >> 14;
@@ -33,7 +34,7 @@ int32_t compTemp(int32_t adc_T) {
     return T;
 }
 
-uint32_t compPress(int32_t adc_P) {
+uint32_t compensate_pressure(int32_t adc_P) {
     int32_t var1, var2;
     uint32_t p;
     var1 = (((int32_t)t_fine)>>1) - (int32_t)64000;
@@ -56,7 +57,7 @@ uint32_t compPress(int32_t adc_P) {
     return p;
 }
 
-uint32_t compHumid(int32_t adc_H) {
+uint32_t compensate_humidity(int32_t adc_H) {
     int32_t v_x1_u32r;
     v_x1_u32r = (t_fine - ((int32_t)76800));
     v_x1_u32r = (((((adc_H << 14) - (((int32_t)dig_H4) << 20) - (((int32_t)dig_H5) * v_x1_u32r)) +
@@ -70,7 +71,7 @@ uint32_t compHumid(int32_t adc_H) {
     return (uint32_t)(v_x1_u32r >> 12);
 }
 
-static void writeRegister(uint8_t reg, uint8_t data)
+static void write_register(uint8_t reg, uint8_t data)
 {
 	uint8_t buffer[2];
 	
@@ -80,7 +81,7 @@ static void writeRegister(uint8_t reg, uint8_t data)
 	i2c_write_blocking(I2C_PORT_0, DeviceAddress, buffer, 2, false);
 }
 
-static void readRegisters(uint8_t reg, uint8_t *buffer, uint16_t len)
+static void read_registers(uint8_t reg, uint8_t *buffer, uint16_t len)
 {
 	
     i2c_write_blocking(I2C_PORT_0, DeviceAddress, &reg, 1, true); // true to keep master control of bus
@@ -88,11 +89,11 @@ static void readRegisters(uint8_t reg, uint8_t *buffer, uint16_t len)
 }
 
 /* This function reads the manufacturing assigned compensation parameters from the device */
-void readCompParameters()
+void read_compensation_parameters()
 {
     uint8_t buffer[26];
 
-    readRegisters(0x88, buffer, 24);
+    read_registers(0x88, buffer, 24);
 
     dig_T1 = buffer[0] | (buffer[1] << 8);
     dig_T2 = buffer[2] | (buffer[3] << 8);
@@ -110,7 +111,7 @@ void readCompParameters()
 
     dig_H1 = buffer[25];
 
-    readRegisters(0xE1, buffer, 8);
+    read_registers(0xE1, buffer, 8);
 
     dig_H2 = buffer[0] | (buffer[1] << 8);
     dig_H3 = (int8_t)buffer[2];
@@ -119,17 +120,17 @@ void readCompParameters()
     dig_H6 = (int8_t)buffer[7];
 }
 
-static void rawBME(int32_t *humidity, int32_t *pressure, int32_t *temperature) {
+static void bme280_read_raw(int32_t *humidity, int32_t *pressure, int32_t *temperature) {
     uint8_t buffer[8];
 
-    readRegisters(0xF7, buffer, 8);
+    read_registers(0xF7, buffer, 8);
     *pressure = ((uint32_t)buffer[0] << 12) | ((uint32_t)buffer[1] << 4) | (buffer[2] >> 4);
     *temperature = ((uint32_t)buffer[3] << 12) | ((uint32_t)buffer[4] << 4) | (buffer[5] >> 4);
     *humidity = (uint32_t)buffer[6] << 8 | buffer[7];
 }
 
 
-void initBME280()
+int initBME280()
 {
 	int bytes_transferred;
 	uint8_t rxdata;
@@ -148,16 +149,15 @@ void initBME280()
 		// Interrogate the device for its I2C ID number, should be 0x60
 		uint8_t id;
 
-		readRegisters(0xD0, &id, 1);
+		read_registers(0xD0, &id, 1);
 		
 		if (id == 0x60)
 		{
-			printf("OK (%02Xh)\n", DeviceAddress);
 			
-			readCompParameters();
+			read_compensation_parameters();
 
-			writeRegister(0xF2, 0x1); // Humidity oversampling register - going for x1
-			writeRegister(0xF4, 0x27);// Set rest of oversampling modes and run mode to normal
+			write_register(0xF2, 0x1); // Humidity oversampling register - going for x1
+			write_register(0xF4, 0x27);// Set rest of oversampling modes and run mode to normal
 		}
 		else
 		{
@@ -166,32 +166,28 @@ void initBME280()
 			DeviceAddress = 0;
 		}
 	}
+    return 1;
 }
 
 void readBME(struct STATE *state)
 {
 	if (DeviceAddress > 0)
 	{
-    
-        int32_t humidity, pressure, temperature;
+			int32_t humidity, pressure, temperature;
 
-        rawBME(&humidity, &pressure, &temperature);
+			bme280_read_raw(&humidity, &pressure, &temperature);
 
-        // These are the raw numbers from the chip, so we need to run through the
-        // compensations to get human understandable numbers
-        pressure = compPress(pressure);
-        temperature = compTemp(temperature);
-        humidity = compHumid(humidity);
-
-        printf("Humidity = %.2f%% | ",humidity / 1024.0);
-        printf("Pressure = %dPa | ", pressure);
-        printf("Temp. = %.2fC\n", temperature/100.0);
-        
-        mutex_enter_blocking(&mtx);
-        state->ExternalTemperature = temperature / 100.0;
-        state->Pressure = pressure;
-        state->Humidity = humidity / 1024.0;
-        mutex_exit(&mtx);
+			// These are the raw numbers from the chip, so we need to run through the
+			// compensations to get human understandable numbers
+			pressure = compensate_pressure(pressure);
+			temperature = compensate_temp(temperature);
+			humidity = compensate_humidity(humidity);
+            //printf("> (0) Temp: %.2f | Pres: %u | Humi: %.2f\n", temperature/100.0, pressure, humidity/1024.0);
+            
+			state->ExternalTemperature = temperature / 100.0;
+			state->Pressure = pressure;
+			state->Humidity = humidity / 1024.0;
+            
 		
 	}
 }
