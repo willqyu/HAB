@@ -263,3 +263,15 @@ void readGPS(struct STATE *state)
 	
 }
 
+void writeFlightMode(struct STATE * state) {
+	int RequiredFlightMode;
+		
+	RequiredFlightMode = (state->Altitude > 1000) ? 6 : 3;    // 6 is airborne <1g mode; 3=Pedestrian mode
+
+	if (RequiredFlightMode != state->GPSFlightMode)
+	{
+		state->GPSFlightMode = RequiredFlightMode;
+
+		SetFlightMode(RequiredFlightMode);
+	}
+}
