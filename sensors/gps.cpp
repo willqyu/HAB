@@ -95,7 +95,6 @@ void ProcessLine(struct STATE *state, unsigned char *b, int Count)
 		{
 			if (sscanf(Buffer+7, "%f,%f,%c,%f,%c,%d,%d,%f,%f,%c", &utc_time, &latitude, &ns, &longitude, &ew, &lock, &satellites, &hdop, &altitude, &units) >= 1)
 			{	
-				mutex_enter_blocking(&mtx);
 				// $GPGGA,124943.00,5157.01557,N,00232.66381,W,1,09,1.01,149.3,M,48.6,M,,*42
 				state->Time = utc_time;
 				state->Hours = state->Time / 10000;
@@ -148,7 +147,6 @@ void ProcessLine(struct STATE *state, unsigned char *b, int Count)
 					state->FlightMode = fmLanded;
 					printf("*** LANDED ***\n");
 				}      
-				mutex_exit(&mtx);  
 			}
 		}
 		else if (strncmp(Buffer+3, "RMC", 3) == 0)
@@ -158,13 +156,12 @@ void ProcessLine(struct STATE *state, unsigned char *b, int Count)
 			if (sscanf(Buffer+7, "%f,%c,%f,%c,%f,%c,%[^','],%[^','],%d", &utc_time, &active, &latitude, &ns, &longitude, &ew, speedstring, coursestring, &date) >= 7)
 			{
 				// $GPRMC,124943.00,A,5157.01557,N,00232.66381,W,0.039,,200314,,,A*6C
-				mutex_enter_blocking(&mtx);
+				
 				speed = atof(speedstring);
 				course = atof(coursestring);
 				
 				state->Speed = (int)speed;
 				state->Direction = (int)course;
-				mutex_exit(&mtx);
 			}
 		}
 		else if (strncmp(Buffer+3, "GSV", 3) == 0)
