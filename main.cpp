@@ -201,7 +201,9 @@ void check_GPS(struct STATE *s) {
         mutex_exit(&mtx);
     }
     if (FM_repeater.can_fire()) {
+        mutex_enter_blocking(&mtx);
         writeFlightMode(s);
+        mutex_exit(&mtx);
     }
 }
 
