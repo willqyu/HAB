@@ -38,14 +38,14 @@
 //LORA
 
 #define CALLSIGN "WSHAB2"
-#define FREQUENCY 434.275
-#define LORA_MODE 0
+#define FREQUENCY 434.425
+#define LORA_MODE 1
 
 //GPS UART
 #define GPS_TX 4
 #define GPS_RX 5
 
-//NO2 GPIO
+//NO2 GPIO 
 #define B4WE 26
 #define B4AE 27
 

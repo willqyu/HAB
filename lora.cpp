@@ -139,7 +139,7 @@ void SetFrequency(double Frequency)
 {
 	unsigned long FrequencyValue;
 
-	//printf("Frequency is %.3f\n", Frequency);
+	printf("Frequency is %.3f", Frequency);
 
 	Frequency = Frequency * 7110656 / 434;
 	FrequencyValue = (unsigned long)(Frequency);

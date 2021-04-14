@@ -59,7 +59,7 @@ int main() {
     initNO2();
     debug("Done\n");
     
-    debug("> Init SPI 0 & 1 @ 500kHz... ");
+    debug("> Init SPI 0 & 1 @500kHz... ");
     spi_init(SPI_PORT_0, 500000);
     spi_init(SPI_PORT_1, 500000);
     //GPIO for SPI
@@ -99,15 +99,15 @@ int main() {
     adc_set_temp_sensor_enabled(true);
     debug("Done\n");
 
-    debug("> Init memory... ");
-    uint8_t emptyData[16 * FLASH_SECTOR_SIZE];
-    for (int i = 0; i < 16 * FLASH_SECTOR_SIZE; i++) {
-        emptyData[i] = 0;
-    }
-    clearChunk(0, 1);
-    readChunk(flash_target_contents, 1);
-    writeChunk(0, emptyData, 1);
-    readChunk(flash_target_contents, 1);
+    // debug("> Init memory... ");
+    // uint8_t emptyData[16 * FLASH_SECTOR_SIZE];
+    // for (int i = 0; i < 16 * FLASH_SECTOR_SIZE; i++) {
+    //     emptyData[i] = 0;
+    // }
+    // clearChunk(0, 1);
+    // readChunk(flash_target_contents, 1);
+    // writeChunk(0, emptyData, 1);
+    // readChunk(flash_target_contents, 1);
     
     debug("> Init watchdog... ");
     watchdog_enable(500, 0);
@@ -147,8 +147,6 @@ void core_entry() {
     } else {
         debug("> (1) Core 1 initialised.\n");
     }
-
-    fix_LED();
 
     while(1) {
         //threadloop
@@ -198,7 +196,9 @@ void check_NO2(struct STATE *s) {
 
 void check_GPS(struct STATE *s) {
     if (GPS_repeater.can_fire()) {
+        mutex_enter_blocking(&mtx);
         readGPS(s);
+        mutex_exit(&mtx);
     }
     if (FM_repeater.can_fire()) {
         writeFlightMode(s);
