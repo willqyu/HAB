@@ -20,10 +20,11 @@
 
 
 //RUNTIME VARIABLES
+
 static Repeater LED_repeater(3000);
 static Repeater BME_repeater(500);
 static Repeater GPS_repeater(10);
-static Repeater FM_repeater(60 * 1b 000);
+static Repeater FM_repeater(60 * 1000);
 static Repeater NO2_repeater(1000);
 static Repeater iTemp_repeater(1000);
 static Repeater Lora_repeater(1000);
