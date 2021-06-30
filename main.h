@@ -87,7 +87,7 @@ static struct STATE
 	int UseHostPosition;
 	int TimeTillLanding;
 	float PredictedLandingSpeed;
-	int GPSFlightMode;
+	int GPSFlightMode = 0;
 } state;
 
 

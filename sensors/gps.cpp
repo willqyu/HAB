@@ -224,7 +224,6 @@ void readGPS(struct STATE *state)
 	static uint64_t ModeTime = 0; 
 	static unsigned char Line[100];
 	static int Length=0;
-	static int stateFlightMode=0;
 	
 	// SetFlightMode();
 
