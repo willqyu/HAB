@@ -14,6 +14,7 @@
 #include "sensors/bme.h"
 #include "sensors/gps.h"
 #include "sensors/no2.h"
+#include "sensors/muon.h"
 #include "helpers/repeater.h"
 #include "helpers/memory.h"
 
@@ -23,8 +24,9 @@
 static Repeater LED_repeater(3000);
 static Repeater BME_repeater(500);
 static Repeater GPS_repeater(10);
-static Repeater FM_repeater(60 * 1b 000);
+static Repeater FM_repeater(60 * 1000);
 static Repeater NO2_repeater(1000);
+static Repeater MUON_repeater(1);
 static Repeater iTemp_repeater(1000);
 static Repeater Lora_repeater(1000);
 
@@ -57,6 +59,10 @@ int main() {
 
     debug("> Init NO2 sensor... ");
     initNO2();
+    debug("Done\n");
+
+    debug("> Init Muon line... ");
+    initMuon();
     debug("Done\n");
     
     debug("> Init SPI 0 & 1 @500kHz... ");
@@ -150,13 +156,7 @@ void core_entry() {
 
     while(1) {
         //threadloop
-        if (Lora_repeater.can_fire()) {
-            debug("> (1) Lora can send\n");
-            mutex_enter_blocking(&mtx);
-            check_lora(&state);
-            mutex_exit(&mtx);
-            //writeStateToMem(&state);
-        }
+        //check_MUON();
     }
         
 }
@@ -194,6 +194,16 @@ void check_NO2(struct STATE *s) {
     }
 }
 
+void check_MUON(struct STATE *s) {
+    if (MUON_repeater.can_fire()) {
+        mutex_enter_blocking(&mtx);
+        mutex_enter_blocking(&mtx_adc);
+        readMuon(s);
+        mutex_exit(&mtx);
+        mutex_exit(&mtx_adc);
+    }
+}
+
 void check_GPS(struct STATE *s) {
     if (GPS_repeater.can_fire()) {
         mutex_enter_blocking(&mtx);
@@ -207,6 +217,16 @@ void check_GPS(struct STATE *s) {
     }
 }
 
+void check_LORA(struct STATE *s) {
+    if (Lora_repeater.can_fire()) {
+        debug("> (1) Lora can send\n");
+        mutex_enter_blocking(&mtx);
+        check_lora(&state);
+        mutex_exit(&mtx);
+        //writeStateToMem(&state);
+    }
+}
+
 
 void check_internalTemps(struct STATE *s) {
     if (iTemp_repeater.can_fire()) {
@@ -214,7 +234,7 @@ void check_internalTemps(struct STATE *s) {
         adc_select_input(4);
         uint16_t iTempRaw = adc_read();
         mutex_exit(&mtx_adc);
-        float iTempV = iTempRaw * conversionFactor;
+        float iTempV = iTempRaw * ADC_CONV;
         float iTemp =  27 - (iTempV - 0.706) / 0.001721;
         mutex_enter_blocking(&mtx);
         s->InternalTemperature = iTemp;

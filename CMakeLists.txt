@@ -19,6 +19,7 @@ add_executable(pico
     sensors/bme.cpp
     sensors/gps.cpp
     sensors/no2.cpp
+    sensors/muon.cpp
 )
 
 target_link_libraries(pico 

@@ -11,6 +11,8 @@
 #define LED_PIN 25
 #define LOW_POWER_ALTITUDE 2000
 
+#define ADC_CONV 3.3f / (1 << 12);
+
 //SPI
 #define SPI_PORT_0 spi0
 #define MISO_0 16
@@ -36,7 +38,6 @@
 #define SCL_1 3
 
 //LORA
-
 #define CALLSIGN "WSHAB2"
 #define FREQUENCY 434.425
 #define LORA_MODE 1
@@ -45,9 +46,12 @@
 #define GPS_TX 4
 #define GPS_RX 5
 
-//NO2 GPIO 
-#define B4WE 26
-#define B4AE 27
+//NO2 GPIO (ADC 0 1)
+#define B4WE 26	//Working electrode
+#define B4AE 27 //Auxillary electrode
+
+//MUON GPIO (ADC 2)
+#define U_PIN 28
 
 //Mutex
 static mutex_t mtx;
@@ -75,6 +79,8 @@ static struct STATE
 	float Humidity;
 	float NO2WE;
 	float NO2AE;
+	int muonCount;
+	float muonRate;
 	TFlightMode FlightMode;
 	float PredictedLongitude, PredictedLatitude;
 	float CDA;

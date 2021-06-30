@@ -17,8 +17,8 @@ void readNO2(struct STATE *state) {
     uint16_t workingVoltage = adc_read();
     adc_select_input(1);
     uint16_t auxillaryVoltage = adc_read();
-    float convWV = workingVoltage * conversionFactor;
-    float convAV = auxillaryVoltage * conversionFactor;
+    float convWV = workingVoltage * ADC_CONV;
+    float convAV = auxillaryVoltage * ADC_CONV;
     state->NO2WE = convWV;
     state->NO2AE = convAV;
     //printf("> (0) NO2 | rWV : %u | rAV : %u | WV : %.3f | AV : %.3f\n", workingVoltage, auxillaryVoltage, convWV, convAV);
